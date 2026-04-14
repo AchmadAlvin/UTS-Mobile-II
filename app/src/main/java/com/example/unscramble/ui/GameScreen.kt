@@ -43,6 +43,9 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,16 +66,43 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel(factory = GameViewModel.
     val gameUiState by gameViewModel.uiState.collectAsState()
     val history by gameViewModel.allHistory.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
+    var showHistoryScreen by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .safeDrawingPadding()
-            .padding(mediumPadding),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    if (showHistoryScreen) {
+        Column(
+            modifier = Modifier
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .safeDrawingPadding()
+                .padding(mediumPadding)
+                .fillMaxWidth(),
+        ) {
+            Button(onClick = { showHistoryScreen = false }) {
+                Text(text = "Back")
+            }
+            Text(
+                text = "History",
+                style = typography.headlineMedium,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+            if (history.isNotEmpty()) {
+                history.forEach { item ->
+                    Text(text = item.word, style = typography.bodyMedium)
+                }
+            } else {
+                Text("No history yet.", style = typography.bodyMedium)
+            }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .safeDrawingPadding()
+                .padding(mediumPadding),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
         Text(
             text = stringResource(R.string.app_name),
@@ -121,18 +151,13 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel(factory = GameViewModel.
 
         GameStatus(score = gameUiState.score, modifier = Modifier.padding(20.dp))
 
-        if (history.isNotEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = mediumPadding, vertical = 8.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    history.forEach { item ->
-                        Text(text = item.word, style = typography.bodyMedium)
-                    }
-                }
-            }
+        Button(
+            onClick = { showHistoryScreen = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = mediumPadding, vertical = 8.dp)
+        ) {
+            Text(text = "History", fontSize = 16.sp)
         }
 
         if (gameUiState.isGameOver) {
@@ -141,6 +166,7 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel(factory = GameViewModel.
                 onPlayAgain = { gameViewModel.resetGame() }
             )
         }
+    }
     }
 }
 
