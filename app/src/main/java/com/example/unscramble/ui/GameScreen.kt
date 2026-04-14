@@ -59,8 +59,9 @@ import com.example.unscramble.R
 import com.example.unscramble.ui.theme.UnscrambleTheme
 
 @Composable
-fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
+fun GameScreen(gameViewModel: GameViewModel = viewModel(factory = GameViewModel.Factory)) {
     val gameUiState by gameViewModel.uiState.collectAsState()
+    val history by gameViewModel.allHistory.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
 
     Column(
@@ -119,6 +120,20 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
         }
 
         GameStatus(score = gameUiState.score, modifier = Modifier.padding(20.dp))
+
+        if (history.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = mediumPadding, vertical = 8.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    history.forEach { item ->
+                        Text(text = item.word, style = typography.bodyMedium)
+                    }
+                }
+            }
+        }
 
         if (gameUiState.isGameOver) {
             FinalScoreDialog(
