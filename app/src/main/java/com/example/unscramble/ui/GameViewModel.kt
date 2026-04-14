@@ -20,6 +20,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.unscramble.UnscrambleApplication
 import com.example.unscramble.data.MAX_NO_OF_WORDS
 import com.example.unscramble.data.SCORE_INCREASE
 import com.example.unscramble.data.allWords
@@ -27,15 +32,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 
 /**
  * ViewModel containing the app data and methods to process the data
  */
-class GameViewModel : ViewModel() {
+class GameViewModel(private val repository: WordHistoryRepository) : ViewModel() {
 
     // Game UI state
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
+
+    val allHistory: StateFlow<List<WordHistory>> = repository.allHistory.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
 
     var userGuess by mutableStateOf("")
         private set
@@ -71,6 +85,9 @@ class GameViewModel : ViewModel() {
         if (userGuess.equals(currentWord, ignoreCase = true)) {
             // User's guess is correct, increase the score
             // and call updateGameState() to prepare the game for next round
+            viewModelScope.launch {
+                repository.insertWord(currentWord)
+            }
             val updatedScore = _uiState.value.score.plus(SCORE_INCREASE)
             updateGameState(updatedScore)
         } else {
@@ -137,6 +154,15 @@ class GameViewModel : ViewModel() {
         } else {
             usedWords.add(currentWord)
             shuffleCurrentWord(currentWord)
+        }
+    }
+
+    companion object {
+        val Factory = viewModelFactory {
+            initializer {
+                val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as UnscrambleApplication)
+                GameViewModel(application.repository)
+            }
         }
     }
 }
